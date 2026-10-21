@@ -1,0 +1,54 @@
+name: Build Windows EXE and Release
+
+on:
+  push:
+    tags: ["v*"]        # e.g. git tag v1.0.0 && git push origin v1.0.0
+  workflow_dispatch:     # manual run from the Actions tab
+
+permissions:
+  contents: write        # needed to create the GitHub Release
+
+jobs:
+  build:
+    runs-on: windows-latest
+    env:
+      DJANGO_SETTINGS_MODULE: config.settings
+      DJANGO_SECRET_KEY: build-only-key
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller waitress whitenoise
+
+      # Uncomment if apps/automation uses Playwright (bundles Chromium, makes exe ~300MB+)
+      # - name: Install Playwright browser
+      #   run: playwright install chromium
+      #   env:
+      #     PLAYWRIGHT_BROWSERS_PATH: "0"
+
+      - name: Collect static files
+        run: python manage.py collectstatic --noinput
+
+      - name: Build single-file exe
+        run: pyinstaller qima_booking.spec --noconfirm
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: QimaBooking-windows
+          path: dist/QimaBooking.exe
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/QimaBooking.exe
+          generate_release_notes: true
