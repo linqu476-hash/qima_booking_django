@@ -22,7 +22,14 @@ WSGI_APPLICATION='config.wsgi.application'
 ASGI_APPLICATION='config.asgi.application'
 DB_ENGINE=os.getenv('DB_ENGINE','sqlite3')
 if DB_ENGINE == 'postgresql':
- DATABASES={'default':{'ENGINE':'django.db.backends.postgresql', ... }}   # leave this line as it is
+ DATABASES={'default':{
+  'ENGINE':'django.db.backends.postgresql',
+  'NAME':os.getenv('POSTGRES_DB','qima'),
+  'USER':os.getenv('POSTGRES_USER','qima'),
+  'PASSWORD':os.getenv('POSTGRES_PASSWORD',''),
+  'HOST':os.getenv('POSTGRES_HOST','localhost'),
+  'PORT':os.getenv('POSTGRES_PORT','5432'),
+ }}
 else:
  DATABASES={'default':{'ENGINE':'django.db.backends.sqlite3','NAME':DATA_DIR/'db.sqlite3'}}
 AUTH_PASSWORD_VALIDATORS=[{'NAME':'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},{'NAME':'django.contrib.auth.password_validation.MinimumLengthValidator'},{'NAME':'django.contrib.auth.password_validation.CommonPasswordValidator'}]
