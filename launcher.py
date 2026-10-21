@@ -1,5 +1,6 @@
 """Entry point for the one-file Windows build of qima_booking."""
 import os
+import secrets
 import sys
 import threading
 import webbrowser
@@ -15,8 +16,25 @@ def base_dir() -> Path:
 
 def data_dir() -> Path:
     root = Path(os.environ.get("LOCALAPPDATA", Path.home())) / "QimaBooking"
-    (root / "storage").mkdir(parents=True, exist_ok=True)
+    (root / "uploads").mkdir(parents=True, exist_ok=True)
     return root
+
+
+def ensure_first_admin() -> None:
+    """Create a random-password admin on first run so users can sign in."""
+    from django.contrib.auth import get_user_model
+
+    User = get_user_model()
+    if User.objects.exists():
+        return
+    password = secrets.token_urlsafe(8)
+    User.objects.create_superuser("admin", "", password)
+    note = data_dir() / "first_login.txt"
+    note.write_text(f"Username: admin\nPassword: {password}\n")
+    print("\n" + "=" * 50)
+    print(f"FIRST RUN - sign in with:  admin / {password}")
+    print(f"(also saved to {note})")
+    print("=" * 50 + "\n")
 
 
 def main() -> None:
@@ -31,6 +49,7 @@ def main() -> None:
     from django.core.management import call_command
 
     call_command("migrate", interactive=False, verbosity=0)
+    ensure_first_admin()
 
     from config.wsgi import application
     from waitress import serve
